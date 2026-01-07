@@ -294,6 +294,3 @@ print("\nTotal reward (demo episode):", total_reward)
 model.save("motor_risk_dqn_model")
 print("Saved model: motor_risk_dqn_model.zip")
 ```
-**1.Install RL libraries**
-**1.Install RL libraries**
-**1.Install RL libraries**
