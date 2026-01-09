@@ -313,3 +313,58 @@ print("Total demo reward:", total_reward)
 model.save("motor_risk_dqn_model")
 print("Saved model: motor_risk_dqn_model.zip")
 ```
+
+**Example output**
+
+
+```
+Shape: (8000, 5)
+Columns: ['Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Vibration (mm/s)', 'Label']
+   Voltage (V)  Current (A)  Temperature (°C)  Vibration (mm/s)     Label
+0       460.01         1.79            118.33             22.37      high
+1       419.12        15.52             36.93              2.18    normal
+2       380.53        30.78             83.08             12.06  moderate
+3       382.82        12.50             54.33              4.48    normal
+4       333.79         0.96            118.99             24.41      high
+Using features: ['Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Vibration (mm/s)']
+Data used: (8000, 4)
+Device: cpu
+Episode 010 | ep_reward=9.27 | avg_risk=2.31 | critical_steps=1 | eps=0.95
+Episode 020 | ep_reward=14.68 | avg_risk=1.16 | critical_steps=1 | eps=0.90
+Episode 030 | ep_reward=25.80 | avg_risk=1.75 | critical_steps=3 | eps=0.86
+Episode 040 | ep_reward=-0.40 | avg_risk=2.32 | critical_steps=1 | eps=0.82
+Episode 050 | ep_reward=22.46 | avg_risk=1.96 | critical_steps=1 | eps=0.78
+Episode 060 | ep_reward=19.83 | avg_risk=1.92 | critical_steps=3 | eps=0.74
+Episode 070 | ep_reward=25.82 | avg_risk=1.93 | critical_steps=3 | eps=0.70
+Episode 080 | ep_reward=39.05 | avg_risk=1.90 | critical_steps=2 | eps=0.67
+Episode 090 | ep_reward=25.87 | avg_risk=1.74 | critical_steps=2 | eps=0.64
+Episode 100 | ep_reward=59.76 | avg_risk=1.79 | critical_steps=6 | eps=0.61
+Episode 110 | ep_reward=5.04 | avg_risk=3.23 | critical_steps=2 | eps=0.58
+Episode 120 | ep_reward=18.81 | avg_risk=1.81 | critical_steps=1 | eps=0.55
+Episode 130 | ep_reward=15.39 | avg_risk=2.34 | critical_steps=1 | eps=0.52
+Episode 140 | ep_reward=32.27 | avg_risk=1.53 | critical_steps=1 | eps=0.50
+Episode 150 | ep_reward=2.42 | avg_risk=2.08 | critical_steps=1 | eps=0.47
+Episode 160 | ep_reward=20.54 | avg_risk=2.05 | critical_steps=1 | eps=0.45
+Episode 170 | ep_reward=3.27 | avg_risk=3.09 | critical_steps=3 | eps=0.43
+Episode 180 | ep_reward=7.57 | avg_risk=1.31 | critical_steps=1 | eps=0.41
+Episode 190 | ep_reward=18.35 | avg_risk=1.79 | critical_steps=1 | eps=0.39
+Episode 200 | ep_reward=3.39 | avg_risk=2.04 | critical_steps=1 | eps=0.37
+Training done.
+
+Demo (first 20 steps):
+t=00 action=4 alarm=1 risk=2.48 reward=0.88
+t=01 action=5 alarm=1 risk=5.07 reward=0.73
+t=02 action=1 alarm=1 risk=3.87 reward=0.53
+t=03 action=5 alarm=1 risk=5.73 reward=0.57
+t=04 action=1 alarm=0 risk=0.11 reward=0.97
+t=05 action=4 alarm=0 risk=0.54 reward=0.87
+t=06 action=4 alarm=0 risk=1.21 reward=0.70
+t=07 action=1 alarm=0 risk=1.00 reward=0.75
+t=08 action=4 alarm=0 risk=0.47 reward=0.88
+t=09 action=2 alarm=0 risk=0.12 reward=0.97
+t=10 action=1 alarm=0 risk=0.63 reward=0.84
+t=11 action=4 alarm=0 risk=0.70 reward=0.82
+t=12 action=2 alarm=0 risk=0.02 reward=1.00
+t=13 action=4 alarm=2 risk=8.25 reward=-0.56
+Total demo reward: 9.952035963535309
+```
