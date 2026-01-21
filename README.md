@@ -4,7 +4,6 @@
 **1.Install RL libraries**
 ```
 # 1) Install RL libraries (Kaggle usually allows pip)
-!pip -q install stable-baselines3 gymnasium
 
 
 import numpy as np
