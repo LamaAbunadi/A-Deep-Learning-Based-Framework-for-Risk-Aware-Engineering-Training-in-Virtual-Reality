@@ -1,6 +1,6 @@
 # A-Deep-Learning-Based-Framework-for-Risk-Aware-Engineering-Training-in-Virtual-Reality
 
-"""
+***
 Title: Risk-Aware Deep Reinforcement Learning for Engineering Training
 Author: Lama A. Abunadi
 
@@ -15,10 +15,24 @@ Research Context:
 Disclaimer:
     This is not a physical simulator or digital twin.
     Transition dynamics are heuristic and safety-oriented.
-"""
+***
+
 
 
 ```
+
+# --------------------------------------------------
+# Environment Design Rationale
+# --------------------------------------------------
+# Logged sensor data provides realistic baseline behavior.
+# Action-dependent transitions are introduced to enable
+# meaningful decision learning.
+#
+# This hybrid design is intentional and suitable for
+# VR training feasibility studies.
+
+
+
 # =========================
 # Risk-Aware DQN Prototype (with action-responsive environment)
 # =========================
@@ -150,17 +164,17 @@ def compute_reward(state, action):
     terminated = (risk >= 7.5 and a == 2)
     return float(reward), terminated, float(risk), int(a)
 
-# =========================
-# 3.5) NEW: Action effects (rule-based transition model)
-# =========================
-# This is the key modification:
-# The environment will apply a directional effect of the chosen action
-# on the next state. This makes actions meaningful.
-#
-# Notes:
-# - State values are normalized (z-scores). Multiplying/scaling here is a prototype choice.
-# - This is NOT accurate physics. It's a "feasibility" dynamics model.
-# - You can tune these coefficients later or replace them with a real simulator/VR.
+
+# --------------------------------------------------
+# Action Semantics (Training-Oriented)
+# --------------------------------------------------
+# 0: Maintain normal operation
+# 1: Reduce system load
+# 2: Transfer load to alternative subsystem
+# 3: Request maintenance intervention
+# 4: Isolate affected system section
+# 5: Emergency shutdown (high cost, high safety)
+
 
 def apply_action_effect(state, action):
     """
@@ -502,3 +516,16 @@ t=18 action=2 alarm=1 risk=3.90 reward=0.53
 t=19 action=2 alarm=1 risk=4.25 reward=0.44
 Total demo reward: 38.983556151390076
 ```
+
+```
+# --------------------------------------------------
+# Limitations and Scope
+# --------------------------------------------------
+# - Transition dynamics are heuristic, not physics-based
+# - Human factors (reaction delay, stress) are not modeled
+#
+# These choices are deliberate and align with early-stage
+# doctoral feasibility exploration.
+```
+د
+ذذذ
