@@ -2,9 +2,9 @@
 
 **Risk-Aware Deep Reinforcement Learning for Engineering Training**
 
-Author: Lama A. Abunadi**
+Author: Lama A. Abunadi
 
-Overview:
+**Overview:
     This code demonstrates a Deep Reinforcement Learning (DQN) framework
     for risk-aware decision training using industrial sensor data.**
 
