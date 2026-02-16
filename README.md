@@ -1,11 +1,34 @@
 # A-Deep-Learning-Based-Framework-for-Risk-Aware-Engineering-Training-in-Virtual-Reality
 
+"""
+Title: Risk-Aware Deep Reinforcement Learning for Engineering Training
+Author: Lama A. Abunadi
 
-**1.Install RL libraries**
+Overview:
+    This code demonstrates a Deep Reinforcement Learning (DQN) framework
+    for risk-aware decision training using industrial sensor data.
+
+Research Context:
+    - Feasibility study for VR-based engineering training
+    - Emphasis on decision sensitivity, not physical simulation
+
+Disclaimer:
+    This is not a physical simulator or digital twin.
+    Transition dynamics are heuristic and safety-oriented.
+"""
+
+
 ```
-# 1) Install RL libraries (Kaggle usually allows pip)
-
-
+# =========================
+# Risk-Aware DQN Prototype (with action-responsive environment)
+# =========================
+# Idea:
+# - We will use logged sensor data as a base signal (from CSV).
+# - We add a simple rule-based transition model so actions
+#   actually change the next state (directionally), making the RL
+#   problem closer to a true MDP: (state, action) -> next_state.
+```
+```
 import numpy as np
 import pandas as pd
 import torch
@@ -128,38 +151,141 @@ def compute_reward(state, action):
     return float(reward), terminated, float(risk), int(a)
 
 # =========================
-# 4) "Environment" over logged data
+# 3.5) NEW: Action effects (rule-based transition model)
+# =========================
+# This is the key modification:
+# The environment will apply a directional effect of the chosen action
+# on the next state. This makes actions meaningful.
+#
+# Notes:
+# - State values are normalized (z-scores). Multiplying/scaling here is a prototype choice.
+# - This is NOT accurate physics. It's a "feasibility" dynamics model.
+# - You can tune these coefficients later or replace them with a real simulator/VR.
+
+def apply_action_effect(state, action):
+    """
+    Apply a simple rule-based effect to the normalized state.
+    state: np.array([v, i, t, vib]) normalized
+    action: int in [0..5]
+    returns: modified_state (np.float32)
+    """
+    v, i, t, vib = state.astype(np.float32).copy()
+
+    if action == 0:
+        # maintain: no intentional mitigation
+        pass
+
+    elif action == 1:  # reduce_load
+        # Lower current, temperature gradually
+        i *= 0.85
+        t *= 0.90
+
+    elif action == 2:  # transfer_load
+        # Reduce current but may introduce slight voltage fluctuation
+        i *= 0.80
+        v += 0.05
+
+    elif action == 3:  # call_maintenance
+        # Maintenance tends to reduce vibration and temperature (after intervention)
+        vib *= 0.70
+        t *= 0.85
+
+    elif action == 4:  # isolate_section
+        # Strong reduction in current and vibration (isolation)
+        i *= 0.50
+        vib *= 0.50
+
+    elif action == 5:  # emergency_shutdown
+        # Drastic reduction in current and vibration; temperature drops fast
+        i = 0.0
+        vib = 0.0
+        t *= 0.30
+
+    # Optional: clamp values to avoid extreme explosion in prototype
+    # (z-scores can drift if you keep adding offsets)
+    v = float(np.clip(v, -5.0, 5.0))
+    i = float(np.clip(i, -5.0, 5.0))
+    t = float(np.clip(t, -5.0, 5.0))
+    vib = float(np.clip(vib, -5.0, 5.0))
+
+    return np.array([v, i, t, vib], dtype=np.float32)
+
+# =========================
+# 4) Environment over logged data (NOW action-responsive)
 # =========================
 class LoggedDataEnv:
-    def __init__(self, Xn, episode_len=200):
+    def __init__(self, Xn, episode_len=200, blend_alpha=0.70, noise_std=0.02):
+        """
+        Xn: normalized logged data
+        episode_len: max steps per episode
+        blend_alpha: how much we trust the logged base vs action-effect state
+            next = alpha * base_logged + (1-alpha) * action_modified
+        noise_std: small noise to avoid deterministic loops (prototype)
+        """
         self.Xn = Xn
         self.N = len(Xn)
         self.episode_len = min(episode_len, self.N - 2)
+
+        self.blend_alpha = float(blend_alpha)
+        self.noise_std = float(noise_std)
+
         self.reset()
 
     def reset(self):
         self.start = np.random.randint(0, self.N - self.episode_len - 1)
         self.t = self.start
         self.steps = 0
-        return self._get_obs()
+
+        # Keep an internal "simulated" state that actions can affect.
+        # Initialize it from the logged observation.
+        self.sim_state = self._get_logged_obs()
+        return self.sim_state.copy()
+
+    def _get_logged_obs(self):
+        # base observation from logged data at time t
+        return self.Xn[self.t].astype(np.float32).copy()
 
     def _get_obs(self):
-        # observation = 4 features only (you can append alarm/risk if you want)
-        return self.Xn[self.t].copy()
+        # observation shown to the agent
+        return self.sim_state.astype(np.float32).copy()
 
     def step(self, action):
+        # Current simulated state
         state = self._get_obs()
+
+        # Reward computed on current state (risk now)
         reward, terminated, risk, alarm = compute_reward(state, action)
 
+        # Move time forward in the logged signal
         self.t += 1
         self.steps += 1
-        next_state = self._get_obs()
+
+        # Base next state from logged data
+        base_next = self._get_logged_obs()
+
+        # Action-modified next state (from current state)
+        action_next = apply_action_effect(state, action)
+
+        # Blend them:
+        # - If alpha is high, we follow logged trend more.
+        # - If alpha is low, action has stronger control over next state.
+        next_state = (
+            self.blend_alpha * base_next +
+            (1.0 - self.blend_alpha) * action_next
+        )
+
+        # Add small noise (optional)
+        if self.noise_std > 0:
+            next_state += np.random.normal(0.0, self.noise_std, size=next_state.shape).astype(np.float32)
+
+        # Update internal sim state
+        self.sim_state = next_state.astype(np.float32)
 
         done = terminated or (self.steps >= self.episode_len)
-        info = {"risk": risk, "alarm": alarm}
-        return next_state, reward, done, info
+        info = {"risk": float(risk), "alarm": int(alarm)}
+        return self._get_obs(), float(reward), bool(done), info
 
-env = LoggedDataEnv(Xn, episode_len=200)
+env = LoggedDataEnv(Xn, episode_len=200, blend_alpha=0.70, noise_std=0.02)
 
 # =========================
 # 5) DQN components
@@ -221,7 +347,7 @@ epsilon = 1.0
 epsilon_min = 0.05
 epsilon_decay = 0.995
 
-num_episodes = 200  # increase if you want
+num_episodes = 200
 global_step = 0
 
 for ep in range(1, num_episodes + 1):
@@ -276,7 +402,10 @@ for ep in range(1, num_episodes + 1):
 
     avg_risk = ep_risk_sum / max(1, env.steps)
     if ep % 10 == 0:
-        print(f"Episode {ep:03d} | ep_reward={ep_reward:.2f} | avg_risk={avg_risk:.2f} | critical_steps={ep_alarm2} | eps={epsilon:.2f}")
+        print(
+            f"Episode {ep:03d} | ep_reward={ep_reward:.2f} | "
+            f"avg_risk={avg_risk:.2f} | critical_steps={ep_alarm2} | eps={epsilon:.2f}"
+        )
 
 print("Training done.")
 
@@ -328,42 +457,48 @@ Columns: ['Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Vibration (mm/s)',
 Using features: ['Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Vibration (mm/s)']
 Data used: (8000, 4)
 Device: cpu
-Episode 010 | ep_reward=9.27 | avg_risk=2.31 | critical_steps=1 | eps=0.95
-Episode 020 | ep_reward=14.68 | avg_risk=1.16 | critical_steps=1 | eps=0.90
-Episode 030 | ep_reward=25.80 | avg_risk=1.75 | critical_steps=3 | eps=0.86
-Episode 040 | ep_reward=-0.40 | avg_risk=2.32 | critical_steps=1 | eps=0.82
-Episode 050 | ep_reward=22.46 | avg_risk=1.96 | critical_steps=1 | eps=0.78
-Episode 060 | ep_reward=19.83 | avg_risk=1.92 | critical_steps=3 | eps=0.74
-Episode 070 | ep_reward=25.82 | avg_risk=1.93 | critical_steps=3 | eps=0.70
-Episode 080 | ep_reward=39.05 | avg_risk=1.90 | critical_steps=2 | eps=0.67
-Episode 090 | ep_reward=25.87 | avg_risk=1.74 | critical_steps=2 | eps=0.64
-Episode 100 | ep_reward=59.76 | avg_risk=1.79 | critical_steps=6 | eps=0.61
-Episode 110 | ep_reward=5.04 | avg_risk=3.23 | critical_steps=2 | eps=0.58
-Episode 120 | ep_reward=18.81 | avg_risk=1.81 | critical_steps=1 | eps=0.55
-Episode 130 | ep_reward=15.39 | avg_risk=2.34 | critical_steps=1 | eps=0.52
-Episode 140 | ep_reward=32.27 | avg_risk=1.53 | critical_steps=1 | eps=0.50
-Episode 150 | ep_reward=2.42 | avg_risk=2.08 | critical_steps=1 | eps=0.47
-Episode 160 | ep_reward=20.54 | avg_risk=2.05 | critical_steps=1 | eps=0.45
-Episode 170 | ep_reward=3.27 | avg_risk=3.09 | critical_steps=3 | eps=0.43
-Episode 180 | ep_reward=7.57 | avg_risk=1.31 | critical_steps=1 | eps=0.41
-Episode 190 | ep_reward=18.35 | avg_risk=1.79 | critical_steps=1 | eps=0.39
-Episode 200 | ep_reward=3.39 | avg_risk=2.04 | critical_steps=1 | eps=0.37
+Episode 010 | ep_reward=110.97 | avg_risk=1.19 | critical_steps=1 | eps=0.95
+Episode 020 | ep_reward=128.48 | avg_risk=1.13 | critical_steps=1 | eps=0.90
+Episode 030 | ep_reward=127.41 | avg_risk=1.28 | critical_steps=0 | eps=0.86
+Episode 040 | ep_reward=137.78 | avg_risk=1.20 | critical_steps=0 | eps=0.82
+Episode 050 | ep_reward=139.88 | avg_risk=1.29 | critical_steps=0 | eps=0.78
+Episode 060 | ep_reward=139.52 | avg_risk=1.09 | critical_steps=0 | eps=0.74
+Episode 070 | ep_reward=126.87 | avg_risk=1.26 | critical_steps=1 | eps=0.70
+Episode 080 | ep_reward=135.08 | avg_risk=1.19 | critical_steps=0 | eps=0.67
+Episode 090 | ep_reward=153.01 | avg_risk=0.99 | critical_steps=0 | eps=0.64
+Episode 100 | ep_reward=142.07 | avg_risk=1.23 | critical_steps=0 | eps=0.61
+Episode 110 | ep_reward=-0.58 | avg_risk=8.31 | critical_steps=1 | eps=0.58
+Episode 120 | ep_reward=142.17 | avg_risk=1.08 | critical_steps=0 | eps=0.55
+Episode 130 | ep_reward=-0.04 | avg_risk=8.17 | critical_steps=1 | eps=0.52
+Episode 140 | ep_reward=145.08 | avg_risk=1.36 | critical_steps=0 | eps=0.50
+Episode 150 | ep_reward=147.54 | avg_risk=1.36 | critical_steps=0 | eps=0.47
+Episode 160 | ep_reward=147.94 | avg_risk=1.21 | critical_steps=0 | eps=0.45
+Episode 170 | ep_reward=150.45 | avg_risk=1.22 | critical_steps=0 | eps=0.43
+Episode 180 | ep_reward=152.11 | avg_risk=1.37 | critical_steps=2 | eps=0.41
+Episode 190 | ep_reward=152.43 | avg_risk=1.24 | critical_steps=0 | eps=0.39
+Episode 200 | ep_reward=158.70 | avg_risk=1.12 | critical_steps=1 | eps=0.37
 Training done.
 
 Demo (first 20 steps):
-t=00 action=4 alarm=1 risk=2.48 reward=0.88
-t=01 action=5 alarm=1 risk=5.07 reward=0.73
-t=02 action=1 alarm=1 risk=3.87 reward=0.53
-t=03 action=5 alarm=1 risk=5.73 reward=0.57
-t=04 action=1 alarm=0 risk=0.11 reward=0.97
-t=05 action=4 alarm=0 risk=0.54 reward=0.87
-t=06 action=4 alarm=0 risk=1.21 reward=0.70
-t=07 action=1 alarm=0 risk=1.00 reward=0.75
-t=08 action=4 alarm=0 risk=0.47 reward=0.88
-t=09 action=2 alarm=0 risk=0.12 reward=0.97
-t=10 action=1 alarm=0 risk=0.63 reward=0.84
-t=11 action=4 alarm=0 risk=0.70 reward=0.82
-t=12 action=2 alarm=0 risk=0.02 reward=1.00
-t=13 action=4 alarm=2 risk=8.25 reward=-0.56
-Total demo reward: 9.952035963535309
+t=00 action=2 alarm=0 risk=0.11 reward=0.97
+t=01 action=2 alarm=0 risk=1.27 reward=0.68
+t=02 action=2 alarm=0 risk=0.20 reward=0.95
+t=03 action=2 alarm=1 risk=4.36 reward=0.41
+t=04 action=2 alarm=0 risk=0.57 reward=0.86
+t=05 action=2 alarm=0 risk=0.03 reward=0.99
+t=06 action=2 alarm=0 risk=0.05 reward=0.99
+t=07 action=2 alarm=0 risk=1.68 reward=0.58
+t=08 action=2 alarm=0 risk=1.61 reward=0.60
+t=09 action=2 alarm=0 risk=0.17 reward=0.96
+t=10 action=2 alarm=0 risk=0.10 reward=0.98
+t=11 action=2 alarm=0 risk=0.99 reward=0.75
+t=12 action=2 alarm=1 risk=3.75 reward=0.56
+t=13 action=5 alarm=1 risk=5.26 reward=0.69
+t=14 action=2 alarm=1 risk=3.38 reward=0.65
+t=15 action=2 alarm=0 risk=1.68 reward=0.58
+t=16 action=2 alarm=0 risk=0.97 reward=0.76
+t=17 action=2 alarm=0 risk=0.41 reward=0.90
+t=18 action=2 alarm=1 risk=3.90 reward=0.53
+t=19 action=2 alarm=1 risk=4.25 reward=0.44
+Total demo reward: 38.983556151390076
 ```
