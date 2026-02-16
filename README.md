@@ -1,7 +1,6 @@
 # A-Deep-Learning-Based-Framework-for-Risk-Aware-Engineering-Training-in-Virtual-Reality
 
-***
-Title: Risk-Aware Deep Reinforcement Learning for Engineering Training
+***Title: Risk-Aware Deep Reinforcement Learning for Engineering Training
 Author: Lama A. Abunadi
 
 Overview:
@@ -14,8 +13,7 @@ Research Context:
 
 Disclaimer:
     This is not a physical simulator or digital twin.
-    Transition dynamics are heuristic and safety-oriented.
-***
+    Transition dynamics are heuristic and safety-oriented.***
 
 
 
