@@ -1,20 +1,20 @@
 # A-Deep-Learning-Based-Framework-for-Risk-Aware-Engineering-Training-in-Virtual-Reality
 
-**Title: Risk-Aware Deep Reinforcement Learning for Engineering Training**
+**Risk-Aware Deep Reinforcement Learning for Engineering Training**
 
-**Author: Lama A. Abunadi**
+Author: Lama A. Abunadi**
 
-**Overview:
+Overview:
     This code demonstrates a Deep Reinforcement Learning (DQN) framework
     for risk-aware decision training using industrial sensor data.**
 
-**Research Context:
+Research Context:
     - Feasibility study for VR-based engineering training
-    - Emphasis on decision sensitivity, not physical simulation**
+    - Emphasis on decision sensitivity, not physical simulation
 
-**Disclaimer:
+Disclaimer:
     This is not a physical simulator or digital twin.
-    Transition dynamics are heuristic and safety-oriented.**
+    Transition dynamics are heuristic and safety-oriented.
 
 
 
