@@ -11,15 +11,12 @@ Author: Lama A. Abunadi
 Research Context:
 
     - Feasibility study for VR-based engineering training
-    
     - Emphasis on decision sensitivity, not physical simulation
     
 
 Disclaimer:
     This is not a physical simulator or digital twin.
     Transition dynamics are heuristic and safety-oriented.
-
-
 
 ```
 
