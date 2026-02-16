@@ -9,8 +9,11 @@ Author: Lama A. Abunadi
     for risk-aware decision training using industrial sensor data.**
 
 Research Context:
+
     - Feasibility study for VR-based engineering training
+    
     - Emphasis on decision sensitivity, not physical simulation
+    
 
 Disclaimer:
     This is not a physical simulator or digital twin.
